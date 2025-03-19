@@ -58,6 +58,10 @@ class SkipList {
     int current_level;                  // 当前跳表的层数
     size_t size_bytes;                  // 占用的字节数
     int random_level();                 // 随机生成节点的层级
+    std::random_device rd;
+    std::uniform_real_distribution<> dis_01;
+    std::uniform_real_distribution<> dis_level;
+    std::mt19937 gen;
 
     public:
     SkipList(int max_level = 16);       // 默认最大层级为16

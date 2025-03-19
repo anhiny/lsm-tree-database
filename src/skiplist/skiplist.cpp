@@ -41,16 +41,17 @@ SkipList::SkipList(int max_level) {
     this->max_level = max_level;
     this->head = std::make_shared<SkipListNode>("", "", max_level);
     current_level = 1;
+    dis_01 = std::uniform_real_distribution<> (0, 1);
+    dis_level = std::uniform_real_distribution<> (0,  (1 << max_level) - 1);
+    gen = std::mt19937(std::random_device()());
+
 }
 
 int SkipList::random_level() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0, 1);
     int level = 1;
     // 通过抛硬币的方式生成随机数
     // 每一次都有百分之五十的概率增加一层
-    while (dis(gen) && level < max_level) {
+    while (dis_01(gen) < 0.5 && level < max_level) {
         level++;
     }
     return level;
@@ -79,29 +80,40 @@ void SkipList::put(const std::string& key, const std::string& value) {
         return;
     }
     // 不存在即创建节点
-    int new_level = random_level();
+    int new_level = std::max(random_level(), current_level);
     if (new_level > current_level) {
         for (int i = current_level; i < new_level; ++i) {
             update[i] = head;
         }
-        current_level = new_level;
     }
     auto new_node = std::make_shared<SkipListNode>(key, value, new_level);
     size_bytes += new_node->key.size() + new_node->value.size();
 
-    // 更新各层的指针
-    for (int i = 0; i < new_level; ++i) {
-        new_node->forward[i] = update[i]->forward[i];
-        update[i]->forward[i] = new_node;
-    }
 
-    // 更新backward指针
+    int random_bit = dis_level(gen);
+
     for (int i = 0; i < new_level; ++i) {
-        if (new_node->forward[i]) {
-            new_node->forward[i]->set_backward(i, new_node);
+        // 按照如下逻辑判断是否更新某一层的链表的连接
+        // 1. 第一层一定要更新
+        // 2. 如果创建了更新的层级，那么所有层都需要更新
+        // 3. 每一层按照百分之五十概率更新，若不更新，则终止
+        // 更新各层的指针
+        bool need_update = false;
+        if (i == 0 || new_level > current_level || (random_bit & (1 << i))) {
+            need_update = true;
         }
-        new_node->set_backward(i, update[i]);
-    }
+        if (need_update) {
+            new_node->forward[i] = update[i]->forward[i];
+            if (new_node->forward[i]) {
+                new_node->forward[i]->set_backward(i, new_node);
+            }
+            update[i]->forward[i] = new_node;
+            new_node->set_backward(i, update[i]);
+        } else {
+            break;
+        }
+    }   
+    current_level = new_level;
 }
 
 

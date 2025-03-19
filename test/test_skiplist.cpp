@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <string>
 #include "../include/skiplist/skiplist.h"
 
 TEST(SkipListTest, BasicOperation) {
@@ -12,6 +13,26 @@ TEST(SkipListTest, BasicOperation) {
 
     skiplist.remove("key1");
     EXPECT_FALSE(skiplist.get("key1").has_value());
+}
+
+TEST(SkipListTest, LargeScaleSetAndGet) {
+    SkipList skiplist;
+
+    const int num_elements = 1000000;
+
+    for (int i = 0; i < num_elements; ++i) {
+        std::string key = "key" + std::to_string(i);
+        std::string value = "value" + std::to_string(i);
+        skiplist.put(key, value);
+    }
+
+    for (int i = 0; i < num_elements; ++i) {
+        std::string key = "key" + std::to_string(i);
+        std::string value = "value" + std::to_string(i);
+        auto res = skiplist.get(key);
+        EXPECT_TRUE(res.has_value());
+        EXPECT_EQ(res.value(), value);
+    }
 }
 
 int main(int argc, char** argv) {
